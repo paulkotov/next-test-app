@@ -15,6 +15,10 @@ export function getClients(): Client[] {
   return clients;
 }
 
+export function getClientById(id: string): Client | undefined {
+  return clients.find((client) => client.id === id);
+}
+
 export function getUserById(id: string): User | undefined {
   return users.find((person) => person.id === id);
 }
