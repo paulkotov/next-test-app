@@ -57,6 +57,12 @@ export type AuthzResult = Authorized | Denied;
 
 const ALLOWED: Authorized = { ok: true };
 
+/**
+ * Role-only actions (`LIST_USERS`, `VIEW_CONTENT`) never inspect the roster, so
+ * navigation can authorize them without loading the user list from the store.
+ */
+const NO_ROSTER: readonly User[] = [];
+
 function deny(reason: DenialReason): Denied {
   return {
     ok: false,
@@ -78,7 +84,7 @@ function otherActiveItExists(users: readonly User[], targetId: string): boolean 
   return users.some((person) => person.id !== targetId && isActiveIt(person));
 }
 
-function canUpdateProfile(actor: User, target: User): boolean {
+function canUpdateProfile(actor: PublicUser, target: User): boolean {
   if (actor.role === Role.IT) {
     return true;
   }
@@ -91,7 +97,7 @@ function canUpdateProfile(actor: User, target: User): boolean {
 }
 
 function authorizeAccountControl(
-  actor: User,
+  actor: PublicUser,
   target: User,
   nextRole: Role,
   nextStatus: UserStatus,
@@ -127,7 +133,7 @@ function authorizeAccountControl(
 }
 
 export function authorize(
-  actor: User,
+  actor: PublicUser,
   action: Action,
   users: readonly User[],
 ): AuthzResult {
@@ -164,7 +170,7 @@ export function authorize(
 }
 
 export function listVisibleUsers(
-  actor: User,
+  actor: PublicUser,
   users: readonly User[],
 ): { ok: true; users: PublicUser[] } | Denied {
   const decision = authorize(actor, { type: ActionType.LIST_USERS }, users);
@@ -179,4 +185,37 @@ export function listVisibleUsers(
       : users.filter((person) => person.managerId === actor.id);
 
   return { ok: true, users: visible.map(toPublicUser) };
+}
+
+export type NavLink = { href: string; label: string };
+
+/**
+ * Every navigable page paired with the permission that unlocks it. Links are
+ * derived from `authorize`, never from `role === ...` checks in components, so a
+ * new role only has to be taught here and in `authorize`.
+ */
+const NAV_LINKS: readonly (NavLink & { action: Action })[] = [
+  { href: "/content", label: "Clients", action: { type: ActionType.VIEW_CONTENT } },
+  { href: "/content/me", label: "My profile", action: { type: ActionType.VIEW_CONTENT } },
+  { href: "/manage-users", label: "Team", action: { type: ActionType.LIST_USERS } },
+];
+
+/** The links the shell may show this actor, decided by the same authorizer. */
+export function navigationFor(actor: PublicUser): NavLink[] {
+  return NAV_LINKS.filter(({ action }) => authorize(actor, action, NO_ROSTER).ok).map(
+    ({ href, label }) => ({ href, label }),
+  );
+}
+
+/** Where `/` and a fresh login send this actor, based on what they may see. */
+export function landingPathFor(actor: PublicUser): string {
+  if (authorize(actor, { type: ActionType.VIEW_CONTENT }, NO_ROSTER).ok) {
+    return "/content";
+  }
+
+  if (authorize(actor, { type: ActionType.LIST_USERS }, NO_ROSTER).ok) {
+    return "/manage-users";
+  }
+
+  return "/login";
 }

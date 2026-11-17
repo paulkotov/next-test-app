@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // Required so protected pages can call `forbidden()` from next/navigation.
+  experimental: {
+    authInterrupts: true,
+  },
   turbopack: {
     rules: {
       "*.css": {

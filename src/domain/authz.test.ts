@@ -6,7 +6,9 @@ import {
   Role,
   UserStatus,
   authorize,
+  landingPathFor,
   listVisibleUsers,
+  navigationFor,
   type AuthzResult,
 } from "./authz";
 import { toPublicUser, type User } from "./user";
@@ -283,6 +285,35 @@ describe("listVisibleUsers", () => {
     expect(listVisibleUsers(olena, people)).toEqual(
       denial(Denial.FORBIDDEN),
     );
+  });
+});
+
+describe("navigationFor", () => {
+  it("gives IT only the team directory", () => {
+    expect(navigationFor(ivan)).toEqual([{ href: "/manage-users", label: "Team" }]);
+  });
+
+  it("gives a manager content, profile and the team directory", () => {
+    expect(navigationFor(anna).map((link) => link.href)).toEqual([
+      "/content",
+      "/content/me",
+      "/manage-users",
+    ]);
+  });
+
+  it("gives a plain user content and profile only", () => {
+    expect(navigationFor(olena).map((link) => link.href)).toEqual([
+      "/content",
+      "/content/me",
+    ]);
+  });
+});
+
+describe("landingPathFor", () => {
+  it("sends IT to the team directory and everyone else to content", () => {
+    expect(landingPathFor(ivan)).toBe("/manage-users");
+    expect(landingPathFor(anna)).toBe("/content");
+    expect(landingPathFor(olena)).toBe("/content");
   });
 });
 
