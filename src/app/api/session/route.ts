@@ -1,4 +1,5 @@
 import { toPublicUser } from "@/domain/user";
+import { json } from "@/server/http";
 import {
   LOGIN_FAILED,
   authenticate,
@@ -24,13 +25,6 @@ function readCredentials(body: unknown): Credentials | null {
   }
 
   return { email, password };
-}
-
-function json(body: unknown, init?: ResponseInit): Response {
-  return new Response(JSON.stringify(body), {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
-  });
 }
 
 export async function POST(request: Request): Promise<Response> {
