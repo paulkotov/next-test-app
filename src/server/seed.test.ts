@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { CLIENT_COUNT } from "../config";
-import { Role, UserStatus } from "../domain/authz";
-import { ClientStatus } from "../domain/client";
-import { createSeedClients, createSeedUsers } from "./seed";
+import { CLIENT_COUNT } from "@/config";
+import { Role, UserStatus } from "@/domain/authz";
+import { ClientStatus } from "@/domain/client";
+import { createSeedClients, createSeedUsers } from "@/server/seed";
 
 describe("createSeedUsers", () => {
   const users = createSeedUsers();

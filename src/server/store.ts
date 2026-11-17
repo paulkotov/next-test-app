@@ -1,8 +1,8 @@
 import "server-only";
 
-import type { Client } from "../domain/client";
-import type { User } from "../domain/user";
-import { createSeedClients, createSeedUsers } from "./seed";
+import type { Client } from "@/domain/client";
+import type { User } from "@/domain/user";
+import { createSeedClients, createSeedUsers } from "@/server/seed";
 
 let users: User[] = createSeedUsers();
 let clients: Client[] = createSeedClients();

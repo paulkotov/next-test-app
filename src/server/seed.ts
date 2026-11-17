@@ -3,11 +3,11 @@ import {
   CLIENT_COUNT,
   CLIENT_SEED,
   USER_SEEDED_AT,
-} from "../config";
-import { Role, UserStatus } from "../domain/authz";
-import { ClientStatus, type Client } from "../domain/client";
-import type { User } from "../domain/user";
-import { createEntityFactory, faker } from "../lib/entity-factory";
+} from "@/config";
+import { Role, UserStatus } from "@/domain/authz";
+import { ClientStatus, type Client } from "@/domain/client";
+import type { User } from "@/domain/user";
+import { createEntityFactory, faker } from "@/lib/entity-factory";
 
 type SeedUser = Pick<User, "id" | "fullName" | "email" | "role"> &
   Partial<Pick<User, "status" | "managerId">>;

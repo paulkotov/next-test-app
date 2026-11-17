@@ -16,3 +16,6 @@ export const CLIENT_COUNT = 1200;
 
 /** Share of generated clients flagged as churned (0..1). */
 export const CLIENT_CHURNED_SHARE = 0.3;
+
+/** Name of the httpOnly cookie that carries the opaque session id. */
+export const SESSION_COOKIE = "session";
