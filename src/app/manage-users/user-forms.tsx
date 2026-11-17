@@ -5,6 +5,7 @@ import { memo, useState, useTransition, type FormEvent } from "react";
 
 import { Role, UserStatus } from "@/domain/authz";
 import type { PublicUser } from "@/domain/user";
+import { PasswordInput } from "@/components/ui/password-input";
 
 type ManagerOption = { id: string; fullName: string };
 
@@ -138,8 +139,7 @@ function CreateUserForm({ managerOptions }: { managerOptions: ManagerOption[] })
           required
           className={inputClass}
         />
-        <input
-          type="password"
+        <PasswordInput
           name="password"
           placeholder="Password"
           autoComplete="new-password"

@@ -5,6 +5,8 @@ import { useActionState, useEffect } from "react";
 
 import { landingPathFor } from "@/domain/authz";
 import type { PublicUser } from "@/domain/user";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const GENERIC_ERROR = "Email or password is wrong, or the account is deactivated.";
 
@@ -51,7 +53,10 @@ export default function LoginPage() {
   }, [state.redirectTo, router]);
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-zinc-50 px-6 dark:bg-black">
+    <main className="relative flex flex-1 items-center justify-center bg-zinc-50 px-6 dark:bg-black">
+      <div className="absolute right-6 top-6">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-sm rounded-2xl border border-black/[.08] bg-white p-8 shadow-sm dark:border-white/[.145] dark:bg-zinc-950">
         <h1 className="text-xl font-semibold text-black dark:text-zinc-50">
           Sign in
@@ -80,8 +85,7 @@ export default function LoginPage() {
 
           <label className="flex flex-col gap-1 text-sm font-medium text-zinc-700 dark:text-zinc-300">
             Password
-            <input
-              type="password"
+            <PasswordInput
               name="password"
               autoComplete="current-password"
               required
