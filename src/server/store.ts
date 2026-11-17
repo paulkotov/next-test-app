@@ -4,50 +4,64 @@ import type { Client } from "@/domain/client";
 import type { User } from "@/domain/user";
 import { createSeedClients, createSeedUsers } from "@/server/seed";
 
-let users: User[] = createSeedUsers();
-let clients: Client[] = createSeedClients();
+/**
+ * In-memory data, pinned on `globalThis` so route handlers and server
+ * components share one instance even when Next compiles them into separate
+ * module graphs. Without this, a mutation through the API would be invisible to
+ * the pages (and vice versa). Resets whenever the server restarts.
+ */
+type StoreState = { users: User[]; clients: Client[] };
+
+const globalForStore = globalThis as typeof globalThis & {
+  __store?: StoreState;
+};
+
+const state: StoreState = (globalForStore.__store ??= {
+  users: createSeedUsers(),
+  clients: createSeedClients(),
+});
 
 export function getUsers(): User[] {
-  return users;
+  return state.users;
 }
 
 export function getClients(): Client[] {
-  return clients;
+  return state.clients;
 }
 
 export function getClientById(id: string): Client | undefined {
-  return clients.find((client) => client.id === id);
+  return state.clients.find((client) => client.id === id);
 }
 
 export function getUserById(id: string): User | undefined {
-  return users.find((person) => person.id === id);
+  return state.users.find((person) => person.id === id);
 }
 
 export function getUserByEmail(email: string): User | undefined {
   const normalized = email.trim().toLowerCase();
-  return users.find((person) => person.email.toLowerCase() === normalized);
+  return state.users.find((person) => person.email.toLowerCase() === normalized);
 }
 
 export function insertUser(user: User): void {
-  users.push(user);
+  state.users.push(user);
 }
 
 export function updateUser(
   id: string,
   patch: Partial<Omit<User, "id">>,
 ): User | undefined {
-  const index = users.findIndex((person) => person.id === id);
+  const index = state.users.findIndex((person) => person.id === id);
 
   if (index === -1) {
     return undefined;
   }
 
-  const updated: User = { ...users[index], ...patch, id };
-  users[index] = updated;
+  const updated: User = { ...state.users[index], ...patch, id };
+  state.users[index] = updated;
   return updated;
 }
 
 export function resetStore(): void {
-  users = createSeedUsers();
-  clients = createSeedClients();
+  state.users = createSeedUsers();
+  state.clients = createSeedClients();
 }

@@ -8,8 +8,17 @@ import { toPublicUser, type PublicUser, type User } from "@/domain/user";
  * Role and status are deliberately NOT stored here. Every request re-reads the
  * live user from the data store, so a deactivation takes effect on the very
  * next request instead of the next login.
+ *
+ * Pinned on `globalThis` so route handlers and server components — which Next
+ * can compile into separate module graphs — share the one Map instead of each
+ * getting their own empty copy.
  */
-const sessions = new Map<string, string>();
+const globalForSessions = globalThis as typeof globalThis & {
+  __sessions?: Map<string, string>;
+};
+
+const sessions: Map<string, string> = (globalForSessions.__sessions ??=
+  new Map<string, string>());
 
 export const UNAUTHENTICATED = {
   code: "UNAUTHENTICATED",
