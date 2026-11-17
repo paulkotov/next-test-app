@@ -200,6 +200,16 @@ const NAV_LINKS: readonly (NavLink & { action: Action })[] = [
   { href: "/manage-users", label: "Team", action: { type: ActionType.LIST_USERS } },
 ];
 
+/** Whether the actor may see the client content area (`/content/*`). */
+export function canAccessContent(actor: PublicUser): boolean {
+  return authorize(actor, { type: ActionType.VIEW_CONTENT }, NO_ROSTER).ok;
+}
+
+/** Whether the actor may see the user directory (`/manage-users`). */
+export function canAccessUserDirectory(actor: PublicUser): boolean {
+  return authorize(actor, { type: ActionType.LIST_USERS }, NO_ROSTER).ok;
+}
+
 /** The links the shell may show this actor, decided by the same authorizer. */
 export function navigationFor(actor: PublicUser): NavLink[] {
   return NAV_LINKS.filter(({ action }) => authorize(actor, action, NO_ROSTER).ok).map(
@@ -209,11 +219,11 @@ export function navigationFor(actor: PublicUser): NavLink[] {
 
 /** Where `/` and a fresh login send this actor, based on what they may see. */
 export function landingPathFor(actor: PublicUser): string {
-  if (authorize(actor, { type: ActionType.VIEW_CONTENT }, NO_ROSTER).ok) {
+  if (canAccessContent(actor)) {
     return "/content";
   }
 
-  if (authorize(actor, { type: ActionType.LIST_USERS }, NO_ROSTER).ok) {
+  if (canAccessUserDirectory(actor)) {
     return "/manage-users";
   }
 

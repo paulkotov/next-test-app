@@ -1,6 +1,6 @@
 import { ActionType, authorize, type Denied } from "@/domain/authz";
 import type { Client, Page } from "@/domain/client";
-import type { User } from "@/domain/user";
+import type { PublicUser } from "@/domain/user";
 import { getClientById, getClients, getUsers } from "@/server/store";
 
 /** Page size used when the request omits `limit` or sends an invalid one. */
@@ -57,7 +57,7 @@ function clampPage(requested: number): number {
  * permission check runs before any data is read.
  */
 export function listClients(
-  actor: User,
+  actor: PublicUser,
   requestedPage: number,
   requestedLimit: number,
 ): ClientPageResult {
@@ -77,7 +77,7 @@ export function listClients(
 }
 
 /** Returns a single client for an allowed actor, or 404 when it does not exist. */
-export function getClientFor(actor: User, id: string): ClientResult {
+export function getClientFor(actor: PublicUser, id: string): ClientResult {
   const decision = authorize(actor, { type: ActionType.VIEW_CONTENT }, getUsers());
 
   if (!decision.ok) {
