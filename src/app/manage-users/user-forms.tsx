@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition, type FormEvent } from "react";
+import { memo, useState, useTransition, type FormEvent } from "react";
 
 import { Role, UserStatus } from "@/domain/authz";
 import type { PublicUser } from "@/domain/user";
@@ -11,143 +11,77 @@ type ManagerOption = { id: string; fullName: string };
 const ROLES = Object.values(Role);
 const STATUSES = Object.values(UserStatus);
 
-const inputClass =
-  "rounded-lg border border-black/[.12] bg-transparent px-3 py-2 text-sm text-black outline-none focus:border-blue-500 dark:border-white/[.18] dark:text-zinc-50";
-const buttonClass =
-  "inline-flex h-9 items-center justify-center rounded-full bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]";
+/** Sends JSON to the API and returns either success or the server's message. */
+async function sendJson(
+  url: string,
+  method: "POST" | "PATCH",
+  body: unknown,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const response = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 
-/** Reads `{ error: { message } }` from a failed API response. */
-async function readErrorMessage(response: Response): Promise<string> {
-  const body: unknown = await response.json().catch(() => null);
-  const message = (body as { error?: { message?: string } } | null)?.error?.message;
-  return message ?? "Something went wrong.";
+  if (response.ok) {
+    return { ok: true };
+  }
+
+  const data: unknown = await response.json().catch(() => null);
+  const message = (data as { error?: { message?: string } } | null)?.error?.message;
+  return { ok: false, message: message ?? "Something went wrong." };
 }
 
-function StatusTag({ status }: { status: UserStatus }) {
-  const isActive = status === UserStatus.ACTIVE;
-  return (
-    <span
-      className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-        isActive
-          ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
-          : "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300"
-      }`}
-    >
-      {isActive ? "Active" : "Deactivated"}
-    </span>
-  );
-}
-
-function UserRow({
-  row,
-  canManageAccounts,
-}: {
-  row: PublicUser;
-  canManageAccounts: boolean;
-}) {
-  const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
-
-  function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-
-    // Send only what actually changed, so editing a name never trips the
-    // role/status permission checks.
-    const patch: Record<string, string> = {};
-    const fullName = String(data.get("fullName") ?? "");
-    const email = String(data.get("email") ?? "");
-
-    if (fullName !== row.fullName) patch.fullName = fullName;
-    if (email !== row.email) patch.email = email;
-
-    if (canManageAccounts) {
-      const role = String(data.get("role") ?? "");
-      const status = String(data.get("status") ?? "");
-      if (role !== row.role) patch.role = role;
-      if (status !== row.status) patch.status = status;
-    }
-
-    if (Object.keys(patch).length === 0) {
-      setError(null);
-      return;
-    }
-
-    startTransition(async () => {
-      const response = await fetch(`/api/users/${row.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patch),
-      });
-
-      if (!response.ok) {
-        setError(await readErrorMessage(response));
-        return;
-      }
-
-      setError(null);
-      router.refresh();
-    });
+function FieldError({ message }: { message: string | null }) {
+  if (!message) {
+    return null;
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      className="flex flex-col gap-3 border-b border-black/[.05] px-4 py-4 last:border-0 dark:border-white/[.08] md:flex-row md:items-center"
-    >
-      <input
-        name="fullName"
-        aria-label="Full name"
-        defaultValue={row.fullName}
-        required
-        className={`${inputClass} md:w-48`}
-      />
-      <input
-        name="email"
-        type="email"
-        aria-label="Email"
-        defaultValue={row.email}
-        required
-        className={`${inputClass} md:flex-1`}
-      />
+    <p role="alert" className="text-sm text-red-600 dark:text-red-400">
+      {message}
+    </p>
+  );
+}
 
-      {canManageAccounts ? (
-        <>
-          <select name="role" aria-label="Role" defaultValue={row.role} className={inputClass}>
-            {ROLES.map((role) => (
-              <option key={role} value={role}>
-                {role}
-              </option>
-            ))}
-          </select>
-          <select
-            name="status"
-            aria-label="Status"
-            defaultValue={row.status}
-            className={inputClass}
-          >
-            {STATUSES.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
-        </>
-      ) : (
-        <StatusTag status={row.status} />
-      )}
+const inputClass =
+  "rounded-lg border border-black/[.12] bg-transparent px-3 py-1.5 text-sm text-black outline-none focus:border-blue-500 dark:border-white/[.18] dark:text-zinc-50";
 
-      <button type="submit" disabled={pending} className={buttonClass}>
-        {pending ? "Saving…" : "Save"}
-      </button>
+const primaryButtonClass =
+  "inline-flex h-9 items-center justify-center rounded-full bg-foreground px-4 text-sm font-medium text-background transition-colors hover:bg-[#383838] disabled:opacity-60 dark:hover:bg-[#ccc]";
 
-      {error ? (
-        <p role="alert" className="text-sm text-red-600 dark:text-red-400 md:ml-2">
-          {error}
-        </p>
-      ) : null}
-    </form>
+export function UserManager({
+  users,
+  currentUserId,
+  canManageAccounts,
+  managerOptions,
+}: {
+  users: PublicUser[];
+  currentUserId: string;
+  canManageAccounts: boolean;
+  managerOptions: ManagerOption[];
+}) {
+  return (
+    <div className="mt-6 flex flex-col gap-8">
+      {canManageAccounts ? <CreateUserForm managerOptions={managerOptions} /> : null}
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+          {users.length} {users.length === 1 ? "person" : "people"}
+        </h2>
+
+        <ul className="flex flex-col gap-3">
+          {users.map((person) => (
+            <UserRow
+              key={person.id}
+              user={person}
+              isSelf={person.id === currentUserId}
+              canManageAccounts={canManageAccounts}
+            />
+          ))}
+        </ul>
+      </section>
+    </div>
   );
 }
 
@@ -162,7 +96,7 @@ function CreateUserForm({ managerOptions }: { managerOptions: ManagerOption[] })
     const data = new FormData(form);
     const managerId = String(data.get("managerId") ?? "");
 
-    const payload = {
+    const body = {
       fullName: String(data.get("fullName") ?? ""),
       email: String(data.get("email") ?? ""),
       password: String(data.get("password") ?? ""),
@@ -171,19 +105,15 @@ function CreateUserForm({ managerOptions }: { managerOptions: ManagerOption[] })
       managerId: managerId === "" ? null : managerId,
     };
 
+    setError(null);
     startTransition(async () => {
-      const response = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const result = await sendJson("/api/users", "POST", body);
 
-      if (!response.ok) {
-        setError(await readErrorMessage(response));
+      if (!result.ok) {
+        setError(result.message);
         return;
       }
 
-      setError(null);
       form.reset();
       router.refresh();
     });
@@ -192,32 +122,31 @@ function CreateUserForm({ managerOptions }: { managerOptions: ManagerOption[] })
   return (
     <form
       onSubmit={onSubmit}
-      className="rounded-xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-zinc-950"
+      className="flex flex-col gap-4 rounded-xl border border-black/[.08] bg-white p-5 dark:border-white/[.145] dark:bg-zinc-950"
     >
-      <h2 className="text-sm font-semibold text-black dark:text-zinc-50">Create user</h2>
+      <h2 className="text-sm font-medium uppercase tracking-wide text-zinc-500">
+        Create user
+      </h2>
 
-      {error ? (
-        <p
-          role="alert"
-          className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-300"
-        >
-          {error}
-        </p>
-      ) : null}
-
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        <input name="fullName" aria-label="Full name" placeholder="Full name" required className={inputClass} />
-        <input name="email" type="email" aria-label="Email" placeholder="Email" required className={inputClass} />
+      <div className="grid gap-3 sm:grid-cols-2">
+        <input name="fullName" placeholder="Full name" required className={inputClass} />
         <input
-          name="password"
+          type="email"
+          name="email"
+          placeholder="Email"
+          autoComplete="off"
+          required
+          className={inputClass}
+        />
+        <input
           type="password"
-          aria-label="Password"
+          name="password"
           placeholder="Password"
           autoComplete="new-password"
           required
           className={inputClass}
         />
-        <select name="managerId" aria-label="Manager" defaultValue="" className={inputClass}>
+        <select name="managerId" defaultValue="" className={inputClass}>
           <option value="">No manager</option>
           {managerOptions.map((manager) => (
             <option key={manager.id} value={manager.id}>
@@ -225,14 +154,14 @@ function CreateUserForm({ managerOptions }: { managerOptions: ManagerOption[] })
             </option>
           ))}
         </select>
-        <select name="role" aria-label="Role" defaultValue={Role.USER} className={inputClass}>
+        <select name="role" defaultValue={Role.USER} className={inputClass}>
           {ROLES.map((role) => (
             <option key={role} value={role}>
               {role}
             </option>
           ))}
         </select>
-        <select name="status" aria-label="Status" defaultValue={UserStatus.ACTIVE} className={inputClass}>
+        <select name="status" defaultValue={UserStatus.ACTIVE} className={inputClass}>
           {STATUSES.map((status) => (
             <option key={status} value={status}>
               {status}
@@ -241,37 +170,131 @@ function CreateUserForm({ managerOptions }: { managerOptions: ManagerOption[] })
         </select>
       </div>
 
-      <button type="submit" disabled={pending} className={`${buttonClass} mt-4`}>
-        {pending ? "Creating…" : "Create user"}
-      </button>
+      <FieldError message={error} />
+
+      <div>
+        <button type="submit" disabled={pending} className={primaryButtonClass}>
+          {pending ? "Creating…" : "Create user"}
+        </button>
+      </div>
     </form>
   );
 }
 
-export function UserManager({
-  rows,
+const UserRow = memo(function UserRow({
+  user,
+  isSelf,
   canManageAccounts,
-  managerOptions,
 }: {
-  rows: PublicUser[];
+  user: PublicUser;
+  isSelf: boolean;
   canManageAccounts: boolean;
-  managerOptions: ManagerOption[];
 }) {
-  return (
-    <div className="mt-6 flex flex-col gap-6">
-      {canManageAccounts ? <CreateUserForm managerOptions={managerOptions} /> : null}
+  const router = useRouter();
+  const [fullName, setFullName] = useState(user.fullName);
+  const [email, setEmail] = useState(user.email);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
-      <div className="overflow-hidden rounded-xl border border-black/[.08] dark:border-white/[.145]">
-        {rows.map((row) => (
-          // Keyed by the persisted values so a refresh remounts the row with
-          // fresh defaults instead of keeping stale input values.
-          <UserRow
-            key={`${row.id}:${row.fullName}:${row.email}:${row.role}:${row.status}`}
-            row={row}
-            canManageAccounts={canManageAccounts}
-          />
-        ))}
+  const isActive = user.status === UserStatus.ACTIVE;
+  const profileDirty = fullName !== user.fullName || email !== user.email;
+
+  function patch(body: Record<string, unknown>) {
+    setError(null);
+    startTransition(async () => {
+      const result = await sendJson(`/api/users/${user.id}`, "PATCH", body);
+
+      if (!result.ok) {
+        setError(result.message);
+        return;
+      }
+
+      // Re-read the store so the row reflects the real, server-side state.
+      router.refresh();
+    });
+  }
+
+  function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    patch({ fullName, email });
+  }
+
+  return (
+    <li className="flex flex-col gap-3 rounded-xl border border-black/[.08] p-4 dark:border-white/[.145]">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm">
+          <span className="font-medium text-black dark:text-zinc-50">{user.role}</span>
+          <span
+            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+              isActive
+                ? "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300"
+                : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+            }`}
+          >
+            {isActive ? "Active" : "Deactivated"}
+          </span>
+          {isSelf ? <span className="text-xs text-zinc-400">(you)</span> : null}
+        </div>
       </div>
-    </div>
+
+      <form onSubmit={saveProfile} className="flex flex-wrap items-center gap-2">
+        <input
+          aria-label="Full name"
+          value={fullName}
+          onChange={(event) => setFullName(event.target.value)}
+          required
+          className={`${inputClass} flex-1`}
+        />
+        <input
+          aria-label="Email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+          className={`${inputClass} flex-1`}
+        />
+        <button
+          type="submit"
+          disabled={pending || !profileDirty}
+          className={primaryButtonClass}
+        >
+          Save
+        </button>
+      </form>
+
+      {canManageAccounts ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            aria-label="Role"
+            key={user.role}
+            defaultValue={user.role}
+            disabled={pending}
+            onChange={(event) => patch({ role: event.target.value })}
+            className={inputClass}
+          >
+            {ROLES.map((role) => (
+              <option key={role} value={role}>
+                {role}
+              </option>
+            ))}
+          </select>
+
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              patch({
+                status: isActive ? UserStatus.DEACTIVATED : UserStatus.ACTIVE,
+              })
+            }
+            className="inline-flex h-9 items-center justify-center rounded-full border border-black/[.12] px-4 text-sm font-medium transition-colors hover:bg-black/[.04] disabled:opacity-60 dark:border-white/[.18] dark:hover:bg-white/[.06]"
+          >
+            {isActive ? "Deactivate" : "Activate"}
+          </button>
+        </div>
+      ) : null}
+
+      <FieldError message={error} />
+    </li>
   );
-}
+});

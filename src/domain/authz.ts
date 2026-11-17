@@ -211,9 +211,9 @@ export function canAccessUserDirectory(actor: PublicUser): boolean {
 }
 
 /**
- * Whether the actor may create accounts and change roles/statuses (IT). Drives
- * whether the UI offers the create form and the role/status controls — the API
- * still re-checks every individual action.
+ * Whether the actor administers accounts: creating users and changing roles or
+ * statuses. All of these are IT-only, so one capability covers the whole set.
+ * The per-action rules (self, last active IT) are still enforced in `authorize`.
  */
 export function canManageAccounts(actor: PublicUser): boolean {
   return authorize(actor, { type: ActionType.CREATE_USER }, NO_ROSTER).ok;
