@@ -210,6 +210,15 @@ export function canAccessUserDirectory(actor: PublicUser): boolean {
   return authorize(actor, { type: ActionType.LIST_USERS }, NO_ROSTER).ok;
 }
 
+/**
+ * Whether the actor may create accounts and change roles/statuses (IT). Drives
+ * whether the UI offers the create form and the role/status controls — the API
+ * still re-checks every individual action.
+ */
+export function canManageAccounts(actor: PublicUser): boolean {
+  return authorize(actor, { type: ActionType.CREATE_USER }, NO_ROSTER).ok;
+}
+
 /** The links the shell may show this actor, decided by the same authorizer. */
 export function navigationFor(actor: PublicUser): NavLink[] {
   return NAV_LINKS.filter(({ action }) => authorize(actor, action, NO_ROSTER).ok).map(

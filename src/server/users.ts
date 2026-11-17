@@ -56,7 +56,7 @@ const EMAIL_TAKEN: Failure = {
   message: "Email is already used.",
 };
 
-export function listUsersFor(actor: User): UserListResult {
+export function listUsersFor(actor: PublicUser): UserListResult {
   const result = listVisibleUsers(actor, getUsers());
 
   if (!result.ok) {
@@ -71,7 +71,7 @@ function emailTaken(email: string, exceptId?: string): boolean {
   return existing !== undefined && existing.id !== exceptId;
 }
 
-export function createUser(actor: User, input: CreateUserInput): UserResult {
+export function createUser(actor: PublicUser, input: CreateUserInput): UserResult {
   const decision = authorize(actor, { type: ActionType.CREATE_USER }, getUsers());
 
   if (!decision.ok) {
@@ -98,7 +98,7 @@ export function createUser(actor: User, input: CreateUserInput): UserResult {
 }
 
 export function updateUserAccount(
-  actor: User,
+  actor: PublicUser,
   targetId: string,
   patch: UpdateUserPatch,
 ): UserResult {
